@@ -17,7 +17,7 @@ The logical structure is a two dimensional array where each element is a logical
 
 ## Reflection
 
-I think I am quite satisfied with the outcome, if I had more time, I would likely have added levels since I have a genBoard function implemented. At first I tried to use sprites that already overlaid the character on the floor tilesets, but turns out that would cause the board logic to require more variables so I went back to the normal way. Generally I think the process was fine, did have to stay up until about 4 in the morning to finish it but it only really took me about 6-8 hours so it was not that bad.
+I think I am quite satisfied with the outcome, if I had more time, I would likely have added levels since I have a genBoard function implemented. At first I tried to use sprites that already overlaid the character on the floor tilesets, but turns out that would cause the board logic to require more variables so I went back to the normal way. Generally I think the process was fine, did have to stay up until about 4 in the morning to finish it but it only really took me about 6-8 hours so it was not that bad. (This included the time it took me to draw the assets)
 
 The design document was quite clear, but I wanted to make some minor changes, so I emailed the professor.
 
