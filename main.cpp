@@ -230,7 +230,6 @@ glEnableVertexAttribArray(program_Color);
 		int treasureLoc = mt_rand() % 121;
 		if (treasureLoc == 60)
 			treasureLoc++;
-		std::cout << treasureLoc << std::endl;
 		for (int i = 0; i < 11; i++) {
 			for (int j = 0; j < 11; j++) {
 				if (i * 11 + j == treasureLoc) {
@@ -263,8 +262,6 @@ glEnableVertexAttribArray(program_Color);
 			}
 		}
 		board[treasureLoc/11][treasureLoc%11] = { true,true,true,false };
-		std::cout << treasureLoc / 11 << std::endl;
-		std::cout << treasureLoc % 11 << std::endl;
 		board[5][5] = { false,false,true,false };
 	};
 
@@ -296,22 +293,26 @@ glEnableVertexAttribArray(program_Color);
 						displayEnd = true;
 					}
 				}
-			} else if (evt.type == SDL_KEYDOWN && evt.key.keysym.sym == SDLK_w) {
+			} else if (evt.type == SDL_KEYDOWN &&
+				(evt.key.keysym.sym == SDLK_w || evt.key.keysym.sym == SDLK_UP)) {
 				if (cury != 10 && board[curx][cury + 1].hasBase) {
 					oldy = cury;
 					cury = oldy + 1;
 				}
-			} else if (evt.type == SDL_KEYDOWN && evt.key.keysym.sym == SDLK_a) {
+			} else if (evt.type == SDL_KEYDOWN &&
+				(evt.key.keysym.sym == SDLK_a || evt.key.keysym.sym == SDLK_LEFT)) {
 				if (curx != 0 && board[curx - 1][cury].hasBase) {
 					oldx = curx;
 					curx = oldx - 1;
 				}
-			} else if (evt.type == SDL_KEYDOWN && evt.key.keysym.sym == SDLK_s) {
+			} else if (evt.type == SDL_KEYDOWN &&
+				(evt.key.keysym.sym == SDLK_s || evt.key.keysym.sym == SDLK_DOWN)) {
 				if (cury != 0 && board[curx][cury - 1].hasBase) {
 					oldy = cury;
 					cury = oldy - 1;
 				}
-			} else if (evt.type == SDL_KEYDOWN && evt.key.keysym.sym == SDLK_d) {
+			} else if (evt.type == SDL_KEYDOWN && 
+				(evt.key.keysym.sym == SDLK_d || evt.key.keysym.sym == SDLK_RIGHT)) {
 				if (curx != 10 && board[curx + 1][cury].hasBase) {
 					oldx = curx;
 					curx = oldx + 1;
@@ -403,8 +404,8 @@ glEnableVertexAttribArray(program_Color);
 				draw_sprite(treasure, glm::vec2(-5.0f + curx, -5.0f + cury));
 				should_quit = true;
 				won = true;
-			}
-			draw_sprite(charBase, glm::vec2(-5.0f + curx, -5.0f + cury));
+			} else
+				draw_sprite(charBase, glm::vec2(-5.0f + curx, -5.0f + cury));
 
 
 			glBindBuffer(GL_ARRAY_BUFFER, buffer);
