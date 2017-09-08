@@ -8,6 +8,10 @@
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
+#include <ctime>
+#include <random>
+#include <thread>
+#include <unordered_map>
 
 static GLuint compile_shader(GLenum type, std::string const &source);
 static GLuint link_program(GLuint vertex_shader, GLuint fragment_shader);
@@ -16,7 +20,7 @@ int main(int argc, char **argv) {
 	//Configuration:
 	struct {
 		std::string title = "Game1: Text/Tiles";
-		glm::uvec2 size = glm::uvec2(640, 480);
+		glm::uvec2 size = glm::uvec2(960, 720);
 	} config;
 
 	//------------  initialization ------------
@@ -87,7 +91,7 @@ int main(int argc, char **argv) {
 
 	{ //load texture 'tex':
 		std::vector< uint32_t > data;
-		if (!load_png("elements.png", &tex_size.x, &tex_size.y, &data, LowerLeftOrigin)) {
+		if (!load_png("atlas.png", &tex_size.x, &tex_size.y, &data, LowerLeftOrigin)) {
 			std::cerr << "Failed to load texture." << std::endl;
 			exit(1);
 		}
@@ -181,7 +185,7 @@ int main(int argc, char **argv) {
 		glVertexAttribPointer(program_Color, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (GLbyte *)0 + sizeof(glm::vec2) + sizeof(glm::vec2));
 		glEnableVertexAttribArray(program_Position);
 		glEnableVertexAttribArray(program_TexCoord);
-		glEnableVertexAttribArray(program_Color);
+glEnableVertexAttribArray(program_Color);
 	}
 
 	//------------ sprite info ------------
@@ -191,16 +195,80 @@ int main(int argc, char **argv) {
 		glm::vec2 rad = glm::vec2(0.5f);
 	};
 
-	auto load_sprite = [](std::string const &name) -> SpriteInfo {
-		SpriteInfo info;
-		//TODO: look up sprite name in table of sprite infos
-		return info;
+	//Hard coded sprite infos since pretty straight forward
+	std::unordered_map<std::string, SpriteInfo> atlasInfos;
+	atlasInfos["base"] = { glm::vec2(0.0f,0.9f),glm::vec2(0.1f,1.0f),glm::vec2(0.5f) };
+	atlasInfos["rock"] = { glm::vec2(0.1f,0.9f),glm::vec2(0.2f,1.0f),glm::vec2(0.5f) };
+	atlasInfos["char"] = { glm::vec2(0.3f,0.9f),glm::vec2(0.4f,1.0f),glm::vec2(0.5f) };
+	atlasInfos["treasure"] = { glm::vec2(0.4f,0.9f),glm::vec2(0.5f,1.0f),glm::vec2(0.5f) };
+	atlasInfos["prompt"] = { glm::vec2(0.0f,0.8f),glm::vec2(0.8f,0.9f),glm::vec2(4.0f,0.5f) };
+	atlasInfos["end"] = { glm::vec2(0.0f,0.7f),glm::vec2(0.6f,0.8f),glm::vec2(3.0f,0.5f) };
+
+	auto load_sprite = [&atlasInfos](std::string const &name) -> SpriteInfo {
+		return atlasInfos[name];
 	};
 
 
 	//------------ game state ------------
 
 	glm::vec2 mouse = glm::vec2(0.0f, 0.0f); //mouse position in [-1,1]x[-1,1] coordinates
+	int curx = 5, cury = 5;
+	int oldx = 5, oldy = 5;
+	bool displayMine = false;
+	bool displayEnd = false;
+	bool won = false;
+	struct tile {
+		bool hasRock = false;
+		bool hasTreasure = false;
+		bool hasBase = true;
+		bool canDel = true;
+	};
+
+	tile board[11][11];
+	auto genBoard = [&board]() {
+		std::mt19937 mt_rand((unsigned int)time(NULL));
+		int treasureLoc = mt_rand() % 121;
+		if (treasureLoc == 60)
+			treasureLoc++;
+		std::cout << treasureLoc << std::endl;
+		for (int i = 0; i < 11; i++) {
+			for (int j = 0; j < 11; j++) {
+				if (i * 11 + j == treasureLoc) {
+					board[i][j] = { true,true,true,false };
+				}
+				if (mt_rand() % 5 == 1)
+					board[i][j] = { true,false,true,true };
+				else
+					board[i][j] = { false,false,true,true };
+			}
+		}
+		int delStart = mt_rand() % 121;
+		int xOffset = delStart / 11;
+		int yOffset = delStart % 11;
+		for (int i = 0; i < 11; i++) {
+			for (int j = 0; j < 11; j++) {
+				int x = (i + xOffset) % 11;
+				int y = (j + yOffset) % 11;
+				tile* temp = &board[x][y];
+				if (temp->canDel && !(x == 5 && y == 5) && mt_rand() % 2 == 1) {
+					temp->hasBase = false;
+					for (int k = -1; k < 2; k++) {
+						for (int l = -1; l < 2; l++) {
+							if (x + k >= 0 && x + k <= 10 && y + l >= 0 && y + l <= 10)
+								board[x + k][y + l].canDel = false;
+						}
+					}
+
+				}
+			}
+		}
+		board[treasureLoc/11][treasureLoc%11] = { true,true,true,false };
+		std::cout << treasureLoc / 11 << std::endl;
+		std::cout << treasureLoc % 11 << std::endl;
+		board[5][5] = { false,false,true,false };
+	};
+
+	genBoard();
 
 	struct {
 		glm::vec2 at = glm::vec2(0.0f, 0.0f);
@@ -220,6 +288,34 @@ int main(int argc, char **argv) {
 				mouse.x = (evt.motion.x + 0.5f) / float(config.size.x) * 2.0f - 1.0f;
 				mouse.y = (evt.motion.y + 0.5f) / float(config.size.y) *-2.0f + 1.0f;
 			} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
+			} else if (evt.type == SDL_KEYDOWN && evt.key.keysym.sym == SDLK_SPACE) {
+				if (board[curx][cury].hasRock){
+					board[curx][cury].hasRock = false;
+					displayMine = false;
+					if (board[curx][cury].hasTreasure) {
+						displayEnd = true;
+					}
+				}
+			} else if (evt.type == SDL_KEYDOWN && evt.key.keysym.sym == SDLK_w) {
+				if (cury != 10 && board[curx][cury + 1].hasBase) {
+					oldy = cury;
+					cury = oldy + 1;
+				}
+			} else if (evt.type == SDL_KEYDOWN && evt.key.keysym.sym == SDLK_a) {
+				if (curx != 0 && board[curx - 1][cury].hasBase) {
+					oldx = curx;
+					curx = oldx - 1;
+				}
+			} else if (evt.type == SDL_KEYDOWN && evt.key.keysym.sym == SDLK_s) {
+				if (cury != 0 && board[curx][cury - 1].hasBase) {
+					oldy = cury;
+					cury = oldy - 1;
+				}
+			} else if (evt.type == SDL_KEYDOWN && evt.key.keysym.sym == SDLK_d) {
+				if (curx != 10 && board[curx + 1][cury].hasBase) {
+					oldx = curx;
+					curx = oldx + 1;
+				}
 			} else if (evt.type == SDL_KEYDOWN && evt.key.keysym.sym == SDLK_ESCAPE) {
 				should_quit = true;
 			} else if (evt.type == SDL_QUIT) {
@@ -227,7 +323,11 @@ int main(int argc, char **argv) {
 				break;
 			}
 		}
-		if (should_quit) break;
+		if (should_quit) {
+			if(won)
+				std::this_thread::sleep_for(std::chrono::seconds(3));
+			break;
+		}
 
 		auto current_time = std::chrono::high_resolution_clock::now();
 		static auto previous_time = current_time;
@@ -236,10 +336,14 @@ int main(int argc, char **argv) {
 
 		{ //update game state:
 			(void)elapsed;
+			if (board[curx][cury].hasRock)
+				displayMine = true;
+			else
+				displayMine = false;
 		}
 
 		//draw output:
-		glClearColor(0.5, 0.5, 0.5, 0.0);
+		glClearColor(0.0, 0.0, 0.0, 0.0);
 		glClear(GL_COLOR_BUFFER_BIT);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -274,11 +378,33 @@ int main(int argc, char **argv) {
 
 
 			//Draw a sprite "player" at position (5.0, 2.0):
-			static SpriteInfo player = load_sprite("player"); //TODO: hoist
-			draw_sprite(player, glm::vec2(5.0, 2.0));
-
-			rect(glm::vec2(0.0f, 0.0f), glm::vec2(4.0f), glm::u8vec4(0xff, 0x00, 0x00, 0xff));
-			rect(mouse * camera.radius + camera.at, glm::vec2(4.0f), glm::u8vec4(0xff, 0xff, 0xff, 0x88));
+			static SpriteInfo base = load_sprite("base");
+			static SpriteInfo rock = load_sprite("rock");
+			static SpriteInfo charBase = load_sprite("char");
+			static SpriteInfo treasure = load_sprite("treasure");
+			static SpriteInfo minePrompt = load_sprite("prompt");
+			static SpriteInfo endPrompt = load_sprite("end");
+			for (int i = 0; i < 11; i++) {
+				for (int j = 0; j < 11; j++) {
+					if (board[i][j].hasBase &&
+						((i >= curx - 1 && i <= curx + 1 && cury == j) ||
+						(j >= cury - 1 && j <= cury + 1 && curx == i))) {
+						if (board[i][j].hasRock)
+								draw_sprite(rock, glm::vec2(-5.0f + i, -5.0f + j));
+						else 
+							draw_sprite(base, glm::vec2(-5.0f + i, -5.0f + j));
+					}
+				}
+			}
+			if(displayMine)
+				draw_sprite(minePrompt, glm::vec2(0.0f, -8.0f));
+			if (displayEnd) {
+				draw_sprite(endPrompt, glm::vec2(0.0f, -8.0f));
+				draw_sprite(treasure, glm::vec2(-5.0f + curx, -5.0f + cury));
+				should_quit = true;
+				won = true;
+			}
+			draw_sprite(charBase, glm::vec2(-5.0f + curx, -5.0f + cury));
 
 
 			glBindBuffer(GL_ARRAY_BUFFER, buffer);
