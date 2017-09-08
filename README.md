@@ -4,25 +4,22 @@ NOTE: please fill in the first section with information about your game.
 
 Cave Miner is Sihan Wang's implementation of [Cave Explorer](http://graphics.cs.cmu.edu/courses/15-466-f17/game1-designs/aluo/) for game1 in 15-466-f17.
 
-*Include a Screenshot Here*
+![alt text](screenshots/Screenshot.png)
 
-## Build Notes
-
-*Include any special notes or steps required to build your game here. If there are no special notes, delete this section.*
 
 ## Asset Pipeline
 
-*Briefly describe the asset pipeline for this game. What sorts of source files are used? How are they processed? How are they loaded?*
+A single sprite atlas is used. It contains the sprites for two types of base tiles and two sprites for the player character. In addition it contains to pre written phrases which can be directly extracted and rendered. Asset loading is done by rendering specific portions of the png file, which is the format of the sprite atlas. Sprite information were manually loaded due to simplicity in this particular case as there were only a total of 6 distinct sprites.
 
 ## Architecture
 
-*Provide a brief introduction to how you implemented the design. Talk about the basic structure of your code.*
+The logical structure is a two dimensional array where each element is a logical representation of a floor tile. The tile contains information regarding whether it is a valid location to travel to, whether it has a rock, whether it has treasure, and whether it can be deleted. The first three attributes are fairly self evident. The fourth attribute is used due the way a board is generated. First a complete board where all locations are traversable is formed, then starting with a random tile, we start deleting. Note that all tiles starts with a true value in can be deleted. When a tile is deleted the 8 surrounding tiles, assuming they exist are marked as not deletable to guarantee that all locations are reachable. Then this deletion process parses through the entire board, where there is a chance a tile will be made not traversable if it is deletable. Similarly, rocks are randomly scattered on the board with each tile having the same randomized chance of having a rock. The treausre location is randomly generated and is guaranteed to have a rock and also guaranteed to not be at the starting location. The Update function along with event polling takes care of character position. The character position is then used in the draw step to only render the current and 4 adjacent tiles. But if the adjacent tile is not traversable, it is also not rendered.
 
 ## Reflection
 
-*Reflect on the assignment. What was difficult? What worked well? If you were doing it again, what would you change?*
+I think I am quite satisfied with the outcome, if I had more time, I would likely have added levels since I have a genBoard function implemented. At first I tried to use sprites that already overlaid the character on the floor tilesets, but turns out that would cause the board logic to require more variables so I went back to the normal way. Generally I think the process was fine, did have to stay up until about 4 in the morning to finish it but it only really took me about 6-8 hours so it was not that bad.
 
-*Reflect on the design document. What was clear and what was ambiguous? How did you resolve the ambiguities?*
+The design document was quite clear, but I wanted to make some minor changes, so I emailed the professor.
 
 
 # About Base1
